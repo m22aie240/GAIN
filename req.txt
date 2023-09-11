@@ -1,0 +1,17 @@
+numpy>=1.18.2
+tensorflow>=1.15.0
+keras>=2.3.1
+tqdm>=4.36.1
+argparse>=1.1
+tensorboard==2.13.0
+tensorboard-data-server==0.7.1
+tensorflow==2.13.0
+tensorflow-estimator==2.13.0
+#tensorflow-intel==2.13.0
+tensorflow-io-gcs-filesystem==0.31.0
+termcolor==2.3.0
+terminado==0.17.1
+tinycss2==1.2.1
+torch==2.0.1
+torchvision==0.15.2
+tornado==6.3.2
