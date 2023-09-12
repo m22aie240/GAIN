@@ -5,6 +5,10 @@ from tqdm.notebook import tqdm_notebook as tqdm
 import torch.nn.functional as F
 from tqdm.notebook import tqdm_notebook as tqdm
 import torch.nn.functional as F
+import torch
+import numpy as np
+from tqdm import tqdm
+
 
 dataset_file = 'Spam.csv'  # 'Letter.csv' for Letter dataset an 'Spam.csv' for Spam dataset
 use_gpu = False  # set it to True to use GPU and False to use CPU
@@ -195,4 +199,71 @@ def test_loss(X, M, New_X):
 optimizer_D = torch.optim.Adam(params=theta_D)
 optimizer_G = torch.optim.Adam(params=theta_G)
 
+# Convert data to tensors outside the loop
+trainX = torch.tensor(trainX, dtype=torch.float32)
+trainM = torch.tensor(trainM, dtype=torch.float32)
 
+# Move data to GPU if applicable
+if use_gpu and torch.cuda.is_available():
+    trainX = trainX.to("cuda")
+    trainM = trainM.to("cuda")
+
+# Start Iterations
+for it in tqdm(range(5000)):
+    # Batch Processing
+    mb_idx = sample_idx(Train_No, mb_size)
+    X_mb = trainX[mb_idx, :]
+    M_mb = trainM[mb_idx, :]
+    H_mb1 = sample_M(mb_size, Dim, 1 - p_hint)
+    H_mb = M_mb * H_mb1
+    Z_mb = sample_Z(mb_size, Dim)
+
+    New_X_mb = M_mb * X_mb + (1 - M_mb) * Z_mb  # Missing Data Introduce
+
+    optimizer_D.zero_grad()
+    D_loss_curr = discriminator_loss(M=M_mb, New_X=New_X_mb, H=H_mb)
+    D_loss_curr.backward()
+    optimizer_D.step()
+
+    optimizer_G.zero_grad()
+    G_loss_curr, MSE_train_loss_curr, MSE_test_loss_curr = generator_loss(X=X_mb, M=M_mb, New_X=New_X_mb, H=H_mb)
+    G_loss_curr.backward()
+    optimizer_G.step()
+
+    # Intermediate Losses
+    if it % 100 == 0:
+        print('Iter: {}'.format(it), end='\t')
+        print('Train_loss: {:.4}'.format(np.sqrt(MSE_train_loss_curr.item())), end='\t')
+        print('Test_loss: {:.4}'.format(np.sqrt(MSE_test_loss_curr.item())))
+
+
+Z_mb = sample_Z(Test_No, Dim) 
+M_mb = testM
+X_mb = testX
+        
+New_X_mb = M_mb * X_mb + (1-M_mb) * Z_mb  # Missing Data Introduce
+
+if use_gpu is True:
+    X_mb = torch.tensor(X_mb, device='cuda')
+    M_mb = torch.tensor(M_mb, device='cuda')
+    New_X_mb = torch.tensor(New_X_mb, device='cuda')
+else:
+    X_mb = torch.tensor(X_mb)
+    M_mb = torch.tensor(M_mb)
+    New_X_mb = torch.tensor(New_X_mb)
+    
+MSE_final, Sample = test_loss(X=X_mb, M=M_mb, New_X=New_X_mb)
+        
+print('Final Test RMSE: ' + str(np.sqrt(MSE_final.item())))
+
+
+
+
+imputed_data = M_mb * X_mb + (1-M_mb) * Sample
+print("Imputed test data:")
+np.set_printoptions(formatter={'float': lambda x: "{0:0.8f}".format(x)})
+
+if use_gpu is True:
+    print(imputed_data.cpu().detach().numpy())
+else:
+    print(imputed_data.detach().numpy())
