@@ -10,7 +10,7 @@ import numpy as np
 from tqdm import tqdm
 
 
-dataset_file = 'Spam.csv'  # 'Letter.csv' for Letter dataset an 'Spam.csv' for Spam dataset
+dataset_file = 'New.csv'  # 'Letter.csv' for Letter dataset an 'New.csv' for Spam dataset
 use_gpu = False  # set it to True to use GPU and False to use CPU
 
 if use_gpu:
